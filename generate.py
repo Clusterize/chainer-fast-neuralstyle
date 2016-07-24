@@ -13,6 +13,7 @@ parser.add_argument('--gpu', '-g', default=-1, type=int,
                     help='GPU ID (negative value indicates CPU)')
 parser.add_argument('--model', '-m', default='models/style.model', type=str)
 parser.add_argument('--out', '-o', default='out.jpg', type=str)
+parser.add_argument('--maxsize', default=1024, type=int, help='The maximum side size of the picture')
 args = parser.parse_args()
 
 model = FastStyleNet()
@@ -23,7 +24,30 @@ if args.gpu >= 0:
 xp = np if args.gpu < 0 else cuda.cupy
 
 start = time.time()
-image = xp.asarray(Image.open(args.input).convert('RGB'), dtype=xp.float32).transpose(2, 0, 1)
+image = Image.open(args.input)
+
+# Convert the image so its sides are always smaller than the max size
+max_size = args.maxsize
+
+width = image.size[0]
+height = image.size[1]
+
+new_width = width
+new_height = height
+
+if width > height:
+	if width > max_size:
+		new_width = max_size
+		reduction_percentage = new_width / float(width)
+		new_height = int(float(height) * float(reduction_percentage))
+else:
+	if height > max_size:
+		new_height = max_size
+		reduction_percentage = new_height / float(height)
+		new_width = int(float(width) * float(reduction_percentage))
+
+image = image.resize((new_width, new_height), 2)
+image =  xp.asarray(image.convert('RGB'), dtype=xp.float32).transpose(2, 0, 1)
 image = image.reshape((1,) + image.shape)
 x = Variable(image)
 

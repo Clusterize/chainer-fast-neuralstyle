@@ -1,6 +1,7 @@
+import numpy as np
 import os
 import argparse
-from PIL import Image
+from PIL import Image, ImageOps
 
 from chainer import cuda, Variable, optimizers, serializers
 from net import *
@@ -93,7 +94,9 @@ for epoch in range(n_epoch):
         indices = range(i * batchsize, (i+1) * batchsize)
         x = xp.zeros((batchsize, 3, 512, 512), dtype=xp.float32)
         for j in range(batchsize):
-            x[j] = xp.asarray(Image.open(imagepaths[i*batchsize + j]).convert('RGB').resize((512,512),2), dtype=np.float32).transpose(2, 0, 1)
+            img = Image.open(imagepaths[i*batchsize + j]).convert('RGB')
+            img = ImageOps.fit(img, (512, 512), 2)
+            x[j] = xp.asarray(img, dtype=np.float32).transpose(2, 0, 1)
 
         xc = Variable(x.copy(), volatile=True)
         x = Variable(x)
